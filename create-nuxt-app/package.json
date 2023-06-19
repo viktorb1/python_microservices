@@ -1,0 +1,20 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "devDependencies": {
+    "@types/node": "^18",
+    "nuxt": "^3.5.0"
+  },
+  "dependencies": {
+    "@stripe/stripe-js": "^1.53.0",
+    "bootstrap": "^5.2.3",
+    "nuxt-stripe-module": "^3.2.0"
+  }
+}
