@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "django_dramatiq",
     "corsheaders",
     "core",
     "administrator",
@@ -150,3 +151,24 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.TokenAuthentication"
     ]
 }
+
+
+DRAMATIQ_BROKER = {
+    "BROKER": "dramatiq_kafka.KafkaBroker",
+    "OPTIONS": {
+        "bootstrap_servers": "kafka:9092",
+        "topic": "admin_app",
+        "group_id": "admin_app_consumergroup",
+    },
+    "MIDDLEWARE": [
+        "dramatiq.middleware.Prometheus",
+        "dramatiq.middleware.AgeLimit",
+        "dramatiq.middleware.TimeLimit",
+        "dramatiq.middleware.Callbacks",
+        "dramatiq.middleware.Retries",
+        "django_dramatiq.middleware.DbConnectionsMiddleware",
+        "django_dramatiq.middleware.AdminMiddleware",
+    ],
+}
+
+DRAMATIQ_TASKS_DATABASE = "default"

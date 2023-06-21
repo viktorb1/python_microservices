@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  kafka:
+    extends:
+      file: docker-compose-common.yaml
+      service: kafka
+  zookeeper:
+    extends:
+      file: docker-compose-common.yaml
+      service: zookeeper
+  redis:
+    extends:
+      file: docker-compose-common.yaml
+      service: redis
+  db:
+    extends:
+      file: docker-compose-common.yaml
+      service: db
+  email_backend:
+    build: email
+    volumes:
+      - ./email:/app
+    depends_on:
+      kafka:
+        condition: service_healthy
+networks:
+  default:
+    name: python_microservices_default

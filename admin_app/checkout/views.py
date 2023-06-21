@@ -1,3 +1,4 @@
+from dramatiq import Message, get_broker, set_broker
 from rest_framework import exceptions
 from django.shortcuts import render
 from rest_framework.response import Response
@@ -7,8 +8,7 @@ from checkout.serializers import LinkSerializer
 import decimal
 from django.db import transaction
 import stripe
-from django.core.mail import send_mail
-
+from django.forms.models import model_to_dict
 from core.models import Link, Order
 
 
@@ -100,25 +100,63 @@ class OrderConfirmAPIView(APIView):
         order.complete = True
         order.save()
 
-        send_mail(
-            subject="An Order has been completed",
-            message="Order #"
-            + str(order.id)
-            + " with a total of $"
-            + str(order.admin_revenue)
-            + "has been completed",
-            from_email="from@email.com",
-            recipient_list=["admin@admin.com"],
+        message = Message(
+            queue_name="email",
+            actor_name="send_emails",
+            args=(order,),
+            kwargs={},
+            options={},
         )
 
-        send_mail(
-            subject="An Order has been completed",
-            message="You earned $"
-            + str(order.ambassador_revenue)
-            + " from the link #"
-            + str(order.code),
-            from_email="from@email.com",
-            recipient_list=[order.ambassador_email],
+        broker = get_broker()
+        broker.enqueue(message)
+
+        return Response({"message": "success"})
+
+
+from faker import Faker
+from random import randrange
+
+
+class TestingView(APIView):
+    def get(self, request):
+        faker = Faker()
+        order = Order.objects.create(
+            user_id=25,
+            code="code",
+            ambassador_email="b@b.com",
+            first_name=faker.first_name(),
+            last_name=faker.last_name(),
+            email=faker.email(),
+            complete=True,
         )
+
+        for _ in range(randrange(1, 5)):
+            price = randrange(10, 100)
+            quantity = randrange(1, 5)
+            OrderItem.objects.create(
+                order_id=order.id,
+                product_title=faker.name(),
+                price=price,
+                quantity=quantity,
+                admin_revenue=0.9 * price * quantity,
+                ambassador_revenue=0.1 * price * quantity,
+            )
+
+        o = model_to_dict(order)
+        o["name"] = order.name
+        o["ambassador_revenue"] = str(order.ambassador_revenue)
+        o["admin_revenue"] = str(order.admin_revenue)
+
+        message = Message(
+            queue_name="email",
+            actor_name="send_emails",
+            args=(o,),
+            kwargs={},
+            options={},
+        )
+
+        broker = get_broker()
+        broker.enqueue(message)
 
         return Response({"message": "success"})

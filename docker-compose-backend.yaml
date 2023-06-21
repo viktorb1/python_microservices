@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  kafka:
+    extends:
+      file: docker-compose-common.yaml
+      service: kafka
+  zookeeper:
+    extends:
+      file: docker-compose-common.yaml
+      service: zookeeper
+  redis:
+    extends:
+      file: docker-compose-common.yaml
+      service: redis
+  db:
+    extends:
+      file: docker-compose-common.yaml
+      service: db
+  backend:
+    container_name: backend
+    build: admin_app
+    volumes:
+      - ./admin_app:/app
+    ports:
+      - 8000:8000
+    depends_on:
+      kafka:
+        condition: service_healthy
+networks:
+  default:
+    name: python_microservices_default

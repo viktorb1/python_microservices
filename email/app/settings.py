@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_dramatiq",
+    "task",
 ]
 
 MIDDLEWARE = [
@@ -127,3 +129,24 @@ EMAIL_PORT = "1025"
 EMAIL_HOST_USER = ""
 EMAIL_HOST_PASSWORD = ""
 EMAIL_USE_TLS = False
+
+
+DRAMATIQ_BROKER = {
+    "BROKER": "dramatiq_kafka.KafkaBroker",
+    "OPTIONS": {
+        "bootstrap_servers": "kafka:9092",
+        "topic": "email",
+        "group_id": "email_consumergroup",
+    },
+    "MIDDLEWARE": [
+        "dramatiq.middleware.Prometheus",
+        "dramatiq.middleware.AgeLimit",
+        "dramatiq.middleware.TimeLimit",
+        "dramatiq.middleware.Callbacks",
+        "dramatiq.middleware.Retries",
+        "django_dramatiq.middleware.DbConnectionsMiddleware",
+        "django_dramatiq.middleware.AdminMiddleware",
+    ],
+}
+
+DRAMATIQ_TASKS_DATABASE = "default"
