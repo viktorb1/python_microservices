@@ -10,6 +10,7 @@ from django.db import transaction
 import stripe
 from django.forms.models import model_to_dict
 from core.models import Link, Order
+from common.services import UserService
 
 
 # Create your views here.
@@ -26,13 +27,15 @@ class OrderAPIView(APIView):
         data = request.data
         link = Link.objects.filter(code=data["code"]).first()
 
+        user = UserService.get("users/" + link.user_id)
+
         if not link:
             raise exceptions.APIException("Invalid code!")
 
         order = Order()
         order.code = link.code
-        order.user_id = link.user.id
-        order.ambassador_email = link.user.email
+        order.user_id = link.user_id
+        order.ambassador_email = user["email"]
         order.first_name = data["first_name"]
         order.last_name = data["last_name"]
         order.email = data["email"]

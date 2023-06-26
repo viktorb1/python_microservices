@@ -66,7 +66,7 @@ class Product(models.Model):
 
 class Order(models.Model):
     transaction_id = models.CharField(max_length=255, null=True)
-    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    user_id = models.IntegerField()
     code = models.CharField(max_length=255)
     ambassador_email = models.CharField(max_length=255)
     first_name = models.CharField(max_length=255)
@@ -97,7 +97,7 @@ class Order(models.Model):
 
 class Link(models.Model):
     code = models.CharField(max_length=255, unique=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user_id = models.IntegerField()
     products = models.ManyToManyField(Product)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,0 +1,26 @@
+version: "3.9"
+services:
+  users_db:
+    image: postgres:latest
+    container_name: users_db
+    restart: always
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    volumes:
+      - .dbdata:/var/lib/postgresql
+    ports:
+      - 54322:5432
+  users_backend:
+    container_name: users_backend
+    build: users
+    volumes:
+      - ./users:/app
+    ports:
+      - 8001:8000
+    depends_on:
+      - users_db
+networks:
+  default:
+    name: python_microservices_default

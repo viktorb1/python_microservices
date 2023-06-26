@@ -1,25 +1,19 @@
 from core.models import User
 from rest_framework.views import APIView
-from common.serializers import UserSerializer
 from rest_framework.response import Response
 from rest_framework import generics, mixins
 
-from common.authentication import JWTAuthentication
-from rest_framework.permissions import IsAuthenticated
 from core.models import User, Product, Link, Order
 from .serializers import ProductSerializer, LinkSerializer, OrderSerializer
 from django.core.cache import cache
+from common.services import UserService
 
 
 # Create your views here.
 class AmbassadorAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
     def get(self, request):
-        ambassadors = User.objects.filter(is_ambassador=True)
-        serializer = UserSerializer(ambassadors, many=True)
-        return Response(serializer.data)
+        users = UserService.get("users")
+        return Response(filter(lambda a: a["is_ambassador"] == 1, users))
 
 
 class ProductGenericAPIView(
@@ -30,8 +24,6 @@ class ProductGenericAPIView(
     mixins.RetrieveModelMixin,
     mixins.DestroyModelMixin,
 ):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
 
@@ -67,9 +59,6 @@ class ProductGenericAPIView(
 
 
 class LinkAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
     def get(self, request, pk=None):
         links = Link.objects.filter(user=pk)
         serializer = LinkSerializer(links, many=True)
@@ -77,9 +66,6 @@ class LinkAPIView(APIView):
 
 
 class OrderAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
     def get(self, request):
         orders = Order.objects.filter(complete=True)
         serializer = OrderSerializer(orders, many=True)

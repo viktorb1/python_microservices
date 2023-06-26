@@ -1,74 +1,59 @@
+import json
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.views import Response
 from rest_framework import exceptions
 
-from common.authentication import JWTAuthentication
-from .serializers import UserSerializer
-from core.models import User
-
-from rest_framework.permissions import IsAuthenticated
+from .services import UserService
 
 
 # Create your views here.
 class RegisterAPIView(APIView):
     def post(self, request):
         data = request.data
-
-        if data["password"] != data["password_confirm"]:
-            raise exceptions.APIException("Passwords do not match")
-
         data["is_ambassador"] = "api/ambassador" in request.path
-
-        serializer = UserSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        res = UserService.post("register", data=data)
+        return Response(res.json(), status=res.status_code)
 
 
 class LoginAPIView(APIView):
     def post(self, request):
-        email = request.data["email"]
-        password = request.data["password"]
+        data = request.data
+        data["scope"] = "ambassador" if "api/ambassador" in request.path else "admin"
+        print(data)
 
-        user = User.objects.filter(email=email).first()
+        res = UserService.post("login", data=data)
+        print(res)
 
-        if user is None:
-            raise exceptions.AuthenticationFailed("User not found")
+        if res.status_code != 200:
+            return Response(json.loads(res._content), status=res.status_code)
 
-        if not user.check_password(password):
-            raise exceptions.AuthenticationFailed("Incorrect password!")
-
-        scope = "ambassador" if "api/ambassador" in request.path else "admin"
-
-        if user.is_ambassador and scope == "admin":
-            raise exceptions.AuthenticationFailed("Unauthorized")
-
-        token = JWTAuthentication.generate_jwt(user.id, scope)
+        jwt = res.json().get("jwt", "")
         response = Response()
-        response.set_cookie(key="jwt", value=token, httponly=True)
+        response.set_cookie(key="jwt", value=jwt, httponly=True)
         response.data = {"message": "success"}
         return response
 
 
 class UserAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    # authentication_classes = [JWTAuthentication]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        user = request.user
-        data = UserSerializer(user).data
+        # if "api/ambassador" in request.path:
+        #     data["revenue"] = user.revenue
 
-        if "api/ambassador" in request.path:
-            data["revenue"] = user.revenue
-        return Response(data)
+        # instead of calling UserService directly, we can use our middleware
+        # res = UserService.get("user", headers=request.headers)
+        return Response(request.user_ms.json(), status=request.user_ms.status_code)
 
 
 class LogoutView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    # authentication_classes = [JWTAuthentication]
+    # permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        res = UserService.post("logout", headers=request.headers)
         response = Response()
         response.delete_cookie(key="jwt")
         response.data = {"message": "success"}
@@ -76,28 +61,21 @@ class LogoutView(APIView):
 
 
 class ProfileInfoAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    # authentication_classes = [JWTAuthentication]
+    # permission_classes = [IsAuthenticated]
 
-    def put(self, request, pk=None):
-        user = request.user
-        serializer = UserSerializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+    def put(self, request):
+        print("THE TYPE IS", type(request.headers))
+        res = UserService.put("users/info", data=request.data, headers=request.headers)
+        return Response(res.json(), status=res.status_code)
 
 
 class ProfilePasswordAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    # authentication_classes = [JWTAuthentication]
+    # permission_classes = [IsAuthenticated]
 
     def put(self, request):
-        user = request.user
-        data = request.data
-
-        if data["password"] != data["password_confirm"]:
-            raise exceptions.APIException("Passwords do not match!")
-
-        user.set_password(data["password"])
-        user.save()
-        return Response(UserSerializer(user).data)
+        res = UserService.put(
+            "users/password", data=request.data, headers=request.headers
+        )
+        return Response(res.json(), status=res.status_code)

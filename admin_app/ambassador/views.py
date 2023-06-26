@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
-from core.models import Product, Link, Order, User
+from core.models import Product, Link, Order
 from .serializers import ProductSerializer, LinkSerializer
 from rest_framework.response import Response
 from django.core.cache import cache
@@ -73,11 +73,11 @@ class LinkAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        user = request.user
+        user = request.user_ms
 
         serializer = LinkSerializer(
             data={
-                "user": user.id,
+                "user": user["id"],
                 "code": "".join(
                     random.choices(string.ascii_lowercase + string.digits, k=6)
                 ),
@@ -90,13 +90,10 @@ class LinkAPIView(APIView):
 
 
 class StatsAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
     def get(self, request):
-        user = request.user
+        user = request.user_ms
 
-        links = Link.objects.filter(user_id=user.id)
+        links = Link.objects.filter(user_id=user["id"])
         return Response([self.format(link) for link in links])
 
     def format(self, link):
@@ -109,9 +106,6 @@ class StatsAPIView(APIView):
 
 
 class RankingsAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
     def get(self, request):
         con = get_redis_connection("default")
 
